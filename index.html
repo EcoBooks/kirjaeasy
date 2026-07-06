@@ -515,6 +515,12 @@ GENERAL: "vatIncluded" true only if amounts already include VAT. Prefer the invo
 }
 async function callAI(images,knownType,customPrompt){
   const key=getKey(),prov=getProvider(),prompt=customPrompt||buildPrompt(knownType);
+  for(let attempt=0;;attempt++){
+    try{return await _aiOnce(key,prov,prompt,images);}
+    catch(e){const m=(e&&e.message)||"";if(attempt<4&&/(429|503|529|RESOURCE_EXHAUSTED|overloaded|quota)/i.test(m)){await new Promise(r=>setTimeout(r,9000*(attempt+1)));continue;}throw e;}
+  }
+}
+async function _aiOnce(key,prov,prompt,images){
   let text;
   if(prov==="anthropic"){
     const content=images.map(img=>{const m=img.match(/^data:(.*?);base64,(.*)$/);return {type:"image",source:{type:"base64",media_type:m[1],data:m[2]}};});
